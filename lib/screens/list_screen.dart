@@ -5,7 +5,8 @@ import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
 
 import '../models/todo.dart';
-import '../providers/todo_provider.dart';
+// import '../providers/todo_provider.dart';
+import '../providers/todo_sqlite.dart';
 
 class ListScreen extends StatefulWidget {
   const ListScreen({Key? key}) : super(key: key);
@@ -16,18 +17,24 @@ class ListScreen extends StatefulWidget {
 
 class _ListScreenState extends State<ListScreen> {
   late List<Todo> todos = [];
-  TodoDefault todoDefault = TodoDefault();
+  TodoSqlite todoSqlite = TodoSqlite();
   bool isLoading = true;
+
+  Future initDb() async {
+    await todoSqlite.initDb().then((value) async {
+      todos = await todoSqlite.getTodos();
+    });
+  }
 
   @override
   void initState() {
     super.initState();
 
-//왜 타이머를?
     Timer(const Duration(seconds: 2), () {
-      todos = todoDefault.getTodos();
-      setState(() {
-        isLoading = false;
+      initDb().then((_) {
+        setState(() {
+          isLoading = false;
+        });
       });
     });
   }
@@ -89,12 +96,14 @@ class _ListScreenState extends State<ListScreen> {
                   actions: [
                     TextButton(
                       child: const Text('추가'),
-                      onPressed: () {
+                      onPressed: () async {
+                        await todoSqlite.addTodo(
+                          Todo(title: title, description: description),
+                        );
+                        List<Todo> newTodos = await todoSqlite.getTodos();
                         setState(() {
                           print("[UI] ADD");
-                          todoDefault.addTodo(
-                            Todo(title: title, description: description),
-                          );
+                          todos = newTodos;
                         });
                         Navigator.pop(context);
                       },
@@ -183,15 +192,21 @@ class _ListScreenState extends State<ListScreen> {
                                       actions: [
                                         TextButton(
                                           child: const Text('수정'),
-                                          onPressed: () {
+                                          onPressed: () async {
                                             Todo newTodo = Todo(
                                                 id: todos[index].id,
                                                 title: title,
                                                 description: description);
 
+                                            await todoSqlite
+                                                .updateTodo(newTodo);
+                                            List<Todo> newTodos =
+                                                await todoSqlite.getTodos();
                                             setState(() {
                                               print("[UI] ADD");
-                                              todoDefault.updateTodo(newTodo);
+                                              setState(() {
+                                                todos = newTodos;
+                                              });
                                             });
                                             Navigator.pop(context);
                                           },
@@ -224,9 +239,12 @@ class _ListScreenState extends State<ListScreen> {
                                       actions: [
                                         TextButton(
                                           onPressed: () async {
+                                            await todoSqlite.deleteTodo(
+                                                todos[index].id ?? 0);
+                                            List<Todo> newTodos =
+                                                await todoSqlite.getTodos();
                                             setState(() {
-                                              todoDefault.deleteTodo(
-                                                  todos[index].id ?? 0);
+                                              todos = newTodos;
                                             });
                                             Navigator.pop(context);
                                           },
