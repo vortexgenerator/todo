@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:todo/screens/list_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -15,10 +17,19 @@ class LoginScreen extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           child: ElevatedButton(
             child: const Text('로그인'),
-            onPressed: () {},
+            onPressed: () {
+              setLogin().then((_) => Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => ListScreen())));
+            },
           ),
         ),
       ),
     );
+  }
+
+  Future setLogin() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isLogin', true);
+    print('set login true');
   }
 }
